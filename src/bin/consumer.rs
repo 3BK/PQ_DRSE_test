@@ -52,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Use postcard's stack/slice parsing engine instead:
     let token: AuditToken = postcard::from_bytes(&pkg_bytes)
-        .map_err(|e| format!("Deserialization Failure (Corrupted Token Package): {}",                      
+        .map_err(|e| format!("Deserialization Failure (Corrupted Token Package): {}", e))?;                  
 
     // 2. Enforce CWE-322 Mitigation: Validate identity matching against out-of-band anchor path
     let trusted_producer_pub_bytes = std::fs::read(&args.trusted_producer_pub)
