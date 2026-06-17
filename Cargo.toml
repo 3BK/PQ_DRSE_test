@@ -2,6 +2,7 @@
 name = "dvs_crypto_lib"
 version = "4.1.0"
 edition = "2024" # Upgraded to Rust 2024 Edition stable paths
+license = "MIT"
 
 [lib]
 name = "dvs_crypto_lib"
