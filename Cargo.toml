@@ -8,15 +8,15 @@ name = "dvs_crypto_lib"
 path = "src/lib.rs"
 
 [[bin]]
-name = "keygen"
+name = "dvs_keygen"
 path = "src/bin/keygen.rs"
 
 [[bin]]
-name = "producer"
+name = "dvs_producer"
 path = "src/bin/producer.rs"
 
 [[bin]]
-name = "consumer"
+name = "dvs_consumer"
 path = "src/bin/consumer.rs"
 
 [dependencies]
