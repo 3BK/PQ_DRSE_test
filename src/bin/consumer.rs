@@ -46,7 +46,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map_err(|e| format!("Critical: Failed to open package {:?}: {}", args.package, e))?;
     let mut pkg_bytes = Vec::new();
     pkg_file.read_to_end(&mut pkg_bytes)?;
-    let token: AuditToken = bincode::deserialize(&pkg_bytes)?;
+
+    // Replace old bincode deserialization logic:
+    // let token: AuditToken = bincode::deserialize(&pkg_bytes)?;
+    
+    // Use postcard's stack/slice parsing engine instead:
+    let token: AuditToken = postcard::from_bytes(&pkg_bytes)
+        .map_err(|e| format!("Deserialization Failure (Corrupted Token Package): {}",                      
 
     // 2. Enforce CWE-322 Mitigation: Validate identity matching against out-of-band anchor path
     let trusted_producer_pub_bytes = std::fs::read(&args.trusted_producer_pub)
