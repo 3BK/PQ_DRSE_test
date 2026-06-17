@@ -1,10 +1,14 @@
+use clap::Parser;
+use dvs_crypto_lib::{create_audit_token, AuditToken, MLDSA_65_PRIV_LEN};
+use libcrux::signature::MlDsa65SigningKey;
+use mimalloc::MiMalloc;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use clap::Parser;
-use libcrux::signature::MlDsa65SigningKey;
-use dvs_crypto_lib::{create_audit_token, AuditToken, MLDSA_65_PRIV_LEN};
 use zeroize::Zeroize;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Parser, Debug)]
 #[command(name = "producer", version, about = "PQC DVS Producer CLI Engine", long_about = None)]
