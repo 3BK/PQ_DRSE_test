@@ -1,6 +1,10 @@
-use std::fs::create_dir_all;
 use libcrux::kem::MlKem768KeyPair;
 use libcrux::signature::MlDsa65KeyPair;
+use mimalloc::MiMalloc;
+use std::fs::create_dir_all;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("[KEYGEN] Generating production long-term static identities...");
