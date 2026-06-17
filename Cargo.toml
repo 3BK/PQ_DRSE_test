@@ -21,7 +21,7 @@ path = "src/bin/consumer.rs"
 
 [dependencies]
 # Formally verified PQ Lattice mechanics
-libcrux = "0.4" 
+libcrux = "0.0.4" 
 # AWS FIPS-validated core for AES-GCM and SHA256 
 aws-lc-rs = { version = "1.17", features = ["fips"] }
 # Automatic zeroization of memory-backed parameters
