@@ -1,10 +1,15 @@
+use clap::Parser;
+use dvs_crypto_lib::{validate_audit_token, AuditToken, MLKEM_768_PRIV_LEN};
+use libcrux::kem::MlKem768PrivateKey;
+use mimalloc::MiMalloc;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
-use clap::Parser;
-use libcrux::kem::MlKem768PrivateKey;
 use zeroize::Zeroize;
-use dvs_crypto_lib::{validate_audit_token, AuditToken, MLKEM_768_PRIV_LEN};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
+
 
 #[derive(Parser, Debug)]
 #[command(name = "consumer", version, about = "PQC DVS Consumer/Auditor CLI Engine", long_about = None)]
