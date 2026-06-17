@@ -1,0 +1,32 @@
+[package]
+name = "dvs_crypto_lib"
+version = "4.1.0"
+edition = "2024" # Upgraded to Rust 2024 Edition stable paths
+
+[lib]
+name = "dvs_crypto_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "keygen"
+path = "src/bin/keygen.rs"
+
+[[bin]]
+name = "producer"
+path = "src/bin/producer.rs"
+
+[[bin]]
+name = "consumer"
+path = "src/bin/consumer.rs"
+
+[dependencies]
+# Formally verified PQ Lattice mechanics
+libcrux = "0.4" 
+# AWS FIPS-validated core for AES-GCM and SHA256 
+aws-lc-rs = { version = "1.17", features = ["fips"] }
+# Automatic zeroization of memory-backed parameters
+zeroize = { version = "1.8", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3"
+# Added clap with derive features for robust CLI parsing
+clap = { version = "4.5", features = ["derive"] }
