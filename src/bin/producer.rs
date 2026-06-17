@@ -87,7 +87,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // 5. Emit serialized package out to file destination
-    let packaged_token_bytes = bincode::serialize(&token)?;
+    // Replace old bincode serialization logic:
+    // let packaged_token_bytes = bincode::serialize(&token)?;
+
+    // Use postcard allocation vectors instead:
+    let packaged_token_bytes = postcard::to_allocvec(&token)
+        .map_err(|e| format!("Serialization Failure: {}", e))?;
+    
     std::fs::write(&out_path, &packaged_token_bytes)
         .map_err(|e| format!("Critical: Failed to write output package file to {:?}: {}", out_path, e))?;
 
