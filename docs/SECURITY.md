@@ -2,63 +2,120 @@
 
 ## Security Policy
 
-This project provides file-bound receiver validation and sender authenticity using:
+This document describes the **current** security posture of `pq_drse_lib` `v0.3.0`.
 
-- `hpke-rs` with the RustCrypto provider
-- `KemAlgorithm::MlKem768`
-- `ML-DSA-65`
-- `SHAKE256`
-- `HMAC-SHA256`
-- `zeroize`
+## Current Security Status
 
-This document describes project security expectations, reporting guidance, and operational hardening guidance.
+`pq_drse_lib` `v0.3.0` is **not a complete working implementation** of its intended cryptographic workflow.
 
----
+The crate currently compiles, but the receiver-key generation path for the intended HPKE configuration returns `Hpke("InvalidConfig")` in the present implementation path.
+
+Therefore:
+
+- the intended receiver-bound cryptographic workflow is not fully operational,
+- end-to-end verification is not currently available as a normal passing test path,
+- this crate should not be treated as production-ready for the intended ML-KEM-768 receiver bundle flow.
 
 ## Supported Versions
 
 | Version | Status |
 |---|---|
-| 0.3.x | Supported |
+| 0.3.x | Prototype / broken receiver-key path |
 | < 0.3.0 | Not supported |
-
----
 
 ## Security Boundaries
 
 This project is an application-layer cryptographic integration library.
-It is **not** a certification boundary and does not by itself establish compliance with any framework, standard, or regulation.
+It is **not** itself a compliance boundary, certification boundary, or complete cryptographic assurance boundary.
 
-The effective security posture depends on:
+Its security properties depend on:
 
-- correct dependency pinning,
-- correct key management,
-- trusted sender public-key distribution,
-- secure receiver private-key storage,
-- secure build and release practices,
-- correct logging and incident response practices,
-- platform and runtime hardening.
+- the correctness of the selected HPKE implementation,
+- the correctness of the selected provider,
+- key management,
+- trust distribution of sender public keys,
+- secure handling of receiver private keys,
+- safe build/release processes,
+- secure host/runtime configuration.
 
----
+## Known Security Limitations
 
-## Key Requirements
+### 1. Broken receiver-key generation path
 
-- Do not downgrade below `hpke-rs` / `hpke-rs-rust-crypto` `0.6.0`.
-- Protect sender ML-DSA signing material with the narrowest possible access controls.
-- Protect receiver HPKE private keys as high-sensitivity secrets.
-- Verify bundles only against trusted sender public keys from an authenticated trust channel.
+The current implementation cannot be relied upon for the intended receiver key generation flow.
 
----
+### 2. No complete validated end-to-end workflow
+
+The intended bundle-generation and verification flow is not currently validated as a passing test path.
+
+### 3. Prototype state
+
+This version should be treated as prototype code until the HPKE configuration issue is repaired and the end-to-end tests are re-enabled and passing.
+
+## Safe Usage Guidance
+
+Until repaired:
+
+- do not present this crate as a complete working ML-KEM-768 receiver-bound implementation,
+- do not rely on ignored tests as proof of cryptographic correctness,
+- do not assume successful portability of the intended receiver workflow,
+- do not use this version as a sole assurance mechanism for high-trust production systems.
+
+## Dependency Posture
+
+The crate currently relies on a combination intended to use:
+
+- `hpke-rs`
+- RustCrypto provider
+- `KemAlgorithm::MlKem768`
+- `ML-DSA-65`
+- `SHAKE256`
+- `HMAC-SHA256`
+
+However, the current runtime behavior indicates the receiver-key generation path is not functioning in the present implementation.
+
+## Key Handling Guidance
+
+If receiver private key material is used during repair or integration testing:
+
+- keep it outside general metadata files unless the design explicitly requires otherwise,
+- protect it with the narrowest practical access controls,
+- avoid long-lived plaintext exposure in logs, CI output, or artifacts,
+- treat test fixture keys as non-production-only material.
+
+## Testing Guidance
+
+The current test posture is intentionally conservative:
+
+- digest behavior is actively checked,
+- the known invalid-config path is explicitly checked,
+- true end-to-end verification remains ignored until repair.
+
+See `TEST.md` for operational details.
 
 ## Reporting a Vulnerability
 
-If you believe you have found a security issue in this project:
+If you discover a security issue in this project:
 
-1. Do **not** open a public issue with exploit details.
-2. Share a private report with:
-   - affected version(s),
-   - impact summary,
-   - reproduction details,
-   - proof-of-concept only where necessary,
-   - recommended mitigation if known.
-3. Allow reasonable time for triage and remediation before public disclosure.
+1. do not publish exploit details in a public issue first,
+2. include the affected version,
+3. include whether the issue concerns:
+   - receiver-key generation,
+   - bundle verification,
+   - signature verification,
+   - digest / tag mismatch behavior,
+   - key handling,
+   - unsafe serialization,
+   - dependency/provider behavior,
+4. include a minimal reproduction where possible.
+
+## Required Exit Criteria Before Production Use
+
+Before this crate should be considered for production-style use, all of the following should be true:
+
+- receiver-key generation succeeds,
+- bundle generation succeeds,
+- end-to-end verification succeeds,
+- ignored workflow tests are re-enabled and pass,
+- documentation reflects actual behavior,
+- security guidance is revised to match the repaired code path.
