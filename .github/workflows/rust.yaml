@@ -151,7 +151,7 @@ jobs:
             test-${{ runner.os }}-${{ env.TARGET }}-
 
       - name: Run tests
-        run: cargo test --target ${{ env.TARGET }}
+        run: cargo test --test test_suite --target ${{ env.TARGET }}
 
 
   # ── 4. Audit ──────────────────────────────────────────────────────
