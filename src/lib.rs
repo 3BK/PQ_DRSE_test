@@ -1,24 +1,29 @@
 #![forbid(unsafe_code)]
 #![doc = include_str!("../README.md")]
 
-use base64::{engine::general_purpose::STANDARD as B64, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use hmac::{Hmac, Mac};
-use hpke_rs::{hpke_types::{AeadAlgorithm, KdfAlgorithm, KemAlgorithm}, Hpke, Mode};
+use hpke_rs::{
+    Hpke, HpkePrivateKey, HpkePublicKey, Mode,
+    hpke_types::{AeadAlgorithm, KdfAlgorithm, KemAlgorithm},
+};
 use hpke_rs_rust_crypto::HpkeRustCrypto;
 use ml_dsa::{
+    EncodedSignature, EncodedVerifyingKey, Generate, Keypair, MlDsa65, Signature,
+    SignatureEncoding, SigningKey, VerifyingKey,
     signature::{Signer, Verifier},
-    EncodedSignature, EncodedVerifyingKey, MlDsa65, Signature, SigningKey, VerifyingKey,
 };
 use serde::{Deserialize, Serialize};
 use shake::{
-    digest::{ExtendableOutput, Update, XofReader},
     Shake256,
+    digest::{ExtendableOutput, Update, XofReader},
 };
-use sha2::Sha256;
 use std::fmt::Write as _;
 use subtle::ConstantTimeEq;
 use thiserror::Error;
 use zeroize::{Zeroize, ZeroizeOnDrop};
+
+use hmac::digest::KeyInit;
 
 pub const VERSION: u8 = 3;
 pub const HPKE_PROVIDER_NAME: &str = "hpke-rs-rust-crypto";
@@ -99,7 +104,7 @@ pub struct ReceiverKeyFile {
     pub hpke_provider: String,
     pub hpke_kem: String,
     pub public_key_b64: String,
-    pub private_key_b64: String,
+    //pub private_key_b64: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -168,14 +173,16 @@ pub fn generate_sender_key_file() -> Result<SenderKeyFile, AttestError> {
 
 pub fn generate_receiver_key_file() -> Result<ReceiverKeyFile, AttestError> {
     let mut hpke = default_hpke();
-    let kp = hpke.generate_key_pair().map_err(|e| AttestError::Hpke(format!("{e:?}")))?;
-    let (sk, pk) = kp.into_keys();
+    let kp = hpke
+        .generate_key_pair()
+        .map_err(|e| AttestError::Hpke(format!("{e:?}")))?;
+    let (_sk, pk) = kp.into_keys();
     Ok(ReceiverKeyFile {
         algorithm: "hpke-rs 0.6.x".to_string(),
         hpke_provider: HPKE_PROVIDER_NAME.to_string(),
         hpke_kem: HPKE_KEM_NAME.to_string(),
         public_key_b64: B64.encode(pk.as_slice()),
-        private_key_b64: B64.encode(sk.as_slice()),
+        //private_key_b64: B64.encode(sk.as_slice()),
     })
 }
 
@@ -189,7 +196,8 @@ pub fn produce_bundle(
     let file_digest = file_digest(file_bytes);
     let sender_signing_key = signing_key_from_seed_b64(&sender_keys.seed_b64)?;
     let sender_public_key = sender_signing_key.verifying_key().encode().to_vec();
-    let receiver_pk = B64.decode(&receiver_keys.public_key_b64)?;
+    let receiver_pk_bytes = B64.decode(&receiver_keys.public_key_b64)?;
+    let receiver_pk = HpkePublicKey::from(receiver_pk_bytes.as_slice());
 
     let mut validation_secret = [0u8; VALIDATION_SECRET_LEN];
     getrandom::fill(&mut validation_secret).map_err(|_| AttestError::RandomGeneration)?;
@@ -239,17 +247,27 @@ pub fn verify_bundle(
     bundle: &Bundle,
 ) -> Result<VerificationOutcome, AttestError> {
     let expected_digest = file_digest(file_bytes);
-    if !bool::from(expected_digest.as_slice().ct_eq(bundle.file_digest.as_slice())) {
+    if !bool::from(
+        expected_digest
+            .as_slice()
+            .ct_eq(bundle.file_digest.as_slice()),
+    ) {
         return Err(AttestError::FileDigestMismatch);
     }
 
     let trusted_sender_pk_bytes = B64.decode(trusted_sender_public_key_b64)?;
-    if !bool::from(trusted_sender_pk_bytes.as_slice().ct_eq(bundle.sender_public_key.as_slice())) {
+    if !bool::from(
+        trusted_sender_pk_bytes
+            .as_slice()
+            .ct_eq(bundle.sender_public_key.as_slice()),
+    ) {
         return Err(AttestError::SenderPublicKeyMismatch);
     }
 
-    let mut hpke = default_hpke();
-    let receiver_sk = B64.decode(receiver_private_key_b64)?;
+    let hpke = default_hpke();
+    let receiver_sk_bytes = B64.decode(receiver_private_key_b64)?;
+    let receiver_sk = HpkePrivateKey::from(receiver_sk_bytes.as_slice());
+
     let recovered_secret = hpke
         .open(
             &bundle.hpke_enc,
@@ -264,7 +282,11 @@ pub fn verify_bundle(
         .map_err(|e| AttestError::Hpke(format!("{e:?}")))?;
 
     let expected_tag = hmac_file_digest(&recovered_secret, &expected_digest)?;
-    if !bool::from(expected_tag.as_slice().ct_eq(bundle.receiver_tag.as_slice())) {
+    if !bool::from(
+        expected_tag
+            .as_slice()
+            .ct_eq(bundle.receiver_tag.as_slice()),
+    ) {
         return Err(AttestError::ReceiverTagMismatch);
     }
 
@@ -302,8 +324,10 @@ pub fn file_digest(file_bytes: &[u8]) -> Vec<u8> {
 
 pub fn hmac_file_digest(secret: &[u8], file_digest: &[u8]) -> Result<Vec<u8>, AttestError> {
     type MacSha256 = Hmac<sha2::Sha256>;
-    let mut mac = MacSha256::new_from_slice(secret).map_err(|e| AttestError::Hpke(format!("{e:?}")))?;
-    mac.update(file_digest);
+    let mut mac =
+        MacSha256::new_from_slice(secret).map_err(|e| AttestError::Hpke(format!("{e:?}")))?;
+    //mac.update(file_digest);
+    hmac::Mac::update(&mut mac, file_digest);
     Ok(mac.finalize().into_bytes().to_vec())
 }
 
@@ -345,17 +369,21 @@ fn default_hpke() -> DefaultHpke {
 
 fn signing_key_from_seed_b64(seed_b64: &str) -> Result<SigningKey<MlDsa65>, AttestError> {
     let seed_bytes = B64.decode(seed_b64)?;
-    let seed_arr: [u8; 32] = seed_bytes.try_into().map_err(|_| AttestError::InvalidSenderSeedLength)?;
+    let seed_arr: [u8; 32] = seed_bytes
+        .try_into()
+        .map_err(|_| AttestError::InvalidSenderSeedLength)?;
     Ok(SigningKey::<MlDsa65>::from_seed(&seed_arr.into()))
 }
 
 fn verifying_key_from_bytes(bytes: &[u8]) -> Result<VerifyingKey<MlDsa65>, AttestError> {
-    let enc = EncodedVerifyingKey::<MlDsa65>::try_from(bytes).map_err(|_| AttestError::InvalidSenderPublicKey)?;
+    let enc = EncodedVerifyingKey::<MlDsa65>::try_from(bytes)
+        .map_err(|_| AttestError::InvalidSenderPublicKey)?;
     Ok(VerifyingKey::<MlDsa65>::decode(&enc))
 }
 
 fn signature_from_bytes(bytes: &[u8]) -> Result<Signature<MlDsa65>, AttestError> {
-    let enc = EncodedSignature::<MlDsa65>::try_from(bytes).map_err(|_| AttestError::InvalidSenderSignature)?;
+    let enc = EncodedSignature::<MlDsa65>::try_from(bytes)
+        .map_err(|_| AttestError::InvalidSenderSignature)?;
     Signature::<MlDsa65>::decode(&enc).ok_or(AttestError::InvalidSenderSignature)
 }
 
