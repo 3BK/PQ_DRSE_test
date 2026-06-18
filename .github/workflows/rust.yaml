@@ -84,40 +84,40 @@ jobs:
       - name: Build all binaries
         run: |
           cargo build --release --target ${{ env.TARGET }} \
-            --bin dvs_keygen \
-            --bin dvs_producer \
-            --bin dvs_consumer
+            --bin drse_keygen \
+            --bin drse_producer \
+            --bin drse_consumer
 
       - name: Verify static linkage (all binaries)
         run: |
-          for bin in dvs_keygen dvs_producer dvs_consumer; do
+          for bin in drse_keygen drse_producer drse_consumer; do
             echo "--- Verifying $bin ---"
             ! ldd target/${{ env.TARGET }}/release/$bin 2>&1 | grep -q "=>"
             file target/${{ env.TARGET }}/release/$bin
             echo "$bin is statically linked ✓"
           done
 
-      - name: Upload dvs_keygen
+      - name: Upload drse_keygen
         uses: actions/upload-artifact@v7
         with:
-          name: dvs_keygen-musl-static
-          path: target/${{ env.TARGET }}/release/dvs_keygen
+          name: drse_keygen-musl-static
+          path: target/${{ env.TARGET }}/release/drse_keygen
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload dvs_producer
+      - name: Upload drse_producer
         uses: actions/upload-artifact@v7
         with:
-          name: dvs_producer-musl-static
-          path: target/${{ env.TARGET }}/release/dvs_producer
+          name: drse_producer-musl-static
+          path: target/${{ env.TARGET }}/release/drse_producer
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload dvs_consumer
+      - name: Upload drse_consumer
         uses: actions/upload-artifact@v7
         with:
-          name: dvs_consumer-musl-static
-          path: target/${{ env.TARGET }}/release/dvs_consumer
+          name: drse_consumer-musl-static
+          path: target/${{ env.TARGET }}/release/drse_consumer
           if-no-files-found: error
           retention-days: 14
 
