@@ -25,7 +25,7 @@ pub const HPKE_PROVIDER_NAME: &str = "hpke-rs-rust-crypto";
 pub const HPKE_KEM_NAME: &str = "MlKem768";
 pub const HPKE_KDF_NAME: &str = "HKDF-SHA256";
 pub const HPKE_AEAD_NAME: &str = "ChaCha20Poly1305";
-pub const CONTEXT_LABEL: &str = "pq-hpke-file-attest/mlkem/shake256/v3";
+pub const CONTEXT_LABEL: &str = "pq_drse_lib/mlkem/shake256/v3";
 pub const VALIDATION_SECRET_LEN: usize = 32;
 pub const FILE_DIGEST_LEN: usize = 32;
 
