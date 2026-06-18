@@ -1,25 +1,16 @@
-use libcrux::kem::MlKem768KeyPair;
-use libcrux::signature::MlDsa65KeyPair;
-use mimalloc::MiMalloc;
-use std::fs::create_dir_all;
-
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+use pq_drse_lib::{generate_receiver_key_file, generate_sender_key_file};
+use std::{fs, path::PathBuf};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("[KEYGEN] Generating production long-term static identities...");
-    create_dir_all("vault")?;
+    let out_dir = PathBuf::from("./out");
+    fs::create_dir_all(&out_dir)?;
 
-    // 1. Auditor Long-Term Identity Configuration
-    let auditor_keypair = MlKem768KeyPair::generate();
-    std::fs::write("vault/auditor_mlkem_public.key", auditor_keypair.public_key().as_ref())?;
-    std::fs::write("vault/auditor_mlkem_private.key", auditor_keypair.private_key().as_ref())?;
+    let sender = generate_sender_key_file()?;
+    let receiver = generate_receiver_key_file()?;
 
-    // 2. Producer Long-Term Identity Configuration
-    let producer_keypair = MlDsa65KeyPair::generate();
-    std::fs::write("vault/producer_mldsa_public.key", producer_keypair.verification_key().as_ref())?;
-    std::fs::write("vault/producer_mldsa_private.key", producer_keypair.signing_key().as_ref())?;
+    fs::write(out_dir.join("sender_keys.json"), serde_json::to_string_pretty(&sender)?)?;
+    fs::write(out_dir.join("receiver_keys.json"), serde_json::to_string_pretty(&receiver)?)?;
 
-    println!("[KEYGEN] Initial identities written to local vault storage directory.");
+    println!("Wrote ./out/sender_keys.json and ./out/receiver_keys.json");
     Ok(())
 }
