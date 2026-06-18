@@ -1,4 +1,4 @@
-use pq_hpke_file_attest_mlkem::{produce_bundle, Bundle, ReceiverKeyFile, SenderKeyFile};
+use pq_drse_lib::{produce_bundle, Bundle, ReceiverKeyFile, SenderKeyFile};
 use std::{env, fs};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
